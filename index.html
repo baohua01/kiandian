@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>防盗监控系统</title>
+<style>
+:root {
+  --bg: #0b0f0e;
+  --bg2: #131918;
+  --bg3: #1a2220;
+  --border: #1e2e2b;
+  --green: #00ff88;
+  --green2: #00cc6a;
+  --red: #ff3b5c;
+  --yellow: #ffcc00;
+  --blue: #00cfff;
+  --text: #d4ede8;
+  --text2: #6b8f88;
+  --text3: #3a5550;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'PingFang SC','Microsoft YaHei',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* 扫描线背景 */
+body::before{
+  content:'';position:fixed;top:0;left:0;right:0;bottom:0;
+  background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,136,0.015) 2px,rgba(0,255,136,0.015) 4px);
+  pointer-events:none;z-index:0;
+}
+
+/* 顶部 */
+.topbar{
+  position:sticky;top:0;z-index:100;
+  background:rgba(11,15,14,0.95);
+  border-bottom:1px solid var(--border);
+  padding:12px 16px;
+  display:flex;align-items:center;justify-content:space-between;
+  backdrop-filter:blur(10px);
+}
+.top-left{display:flex;align-items:center;gap:10px;}
+.logo-icon{
+  width:34px;height:34px;border-radius:8px;
+  background:linear-gradient(135deg,var(--green),#00aa55);
+  display:flex;align-items:center;justify-content:center;
+  font-size:16px;font-weight:900;color:#000;letter-spacing:-1px;
+}
+.top-title{font-size:15px;font-weight:700;letter-spacing:2px;}
+.top-sub{font-size:10px;color:var(--text2);margin-top:1px;letter-spacing:1px;}
+.status-pill{
+  display:flex;align-items:center;gap:5px;
+  background:rgba(0,255,136,0.08);
+  border:1px solid rgba(0,255,136,0.25);
+  border-radius:20px;padding:5px 12px;
+  font-size:11px;color:var(--green);
+  font-weight:600;letter-spacing:1px;
+}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:p 1.5s infinite;}
+@keyframes p{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.3;transform:scale(0.7);}}
+
+/* 登录页 */
+#login-page{
+  position:fixed;inset:0;z-index:999;
+  background:var(--bg);
+  display:flex;align-items:center;justify-content:center;
+  flex-direction:column;gap:0;
+}
+.login-box{
+  width:100%;max-width:340px;
+  padding:40px 30px;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:20px;
+  margin:20px;
+}
+.login-logo{text-align:center;margin-bottom:28px;}
+.login-logo .big-icon{font-size:48px;display:block;margin-bottom:8px;}
+.login-logo h2{font-size:18px;font-weight:700;letter-spacing:2px;color:var(--green);}
+.login-logo p{font-size:11px;color:var(--text2);margin-top:4px;}
+.login-field{margin-bottom:14px;}
+.login-field label{display:block;font-size:11px;color:var(--text2);margin-bottom:6px;letter-spacing:1px;}
+.login-field input{
+  width:100%;background:var(--bg3);
+  border:1px solid var(--border);border-radius:10px;
+  padding:12px 14px;color:var(--text);font-size:14px;
+  outline:none;transition:border-color 0.2s;
+}
+.login-field input:focus{border-color:var(--green);}
+.login-btn{
+  width:100%;padding:13px;border:none;border-radius:10px;
+  background:linear-gradient(135deg,var(--green),var(--green2));
+  color:#000;font-size:15px;font-weight:700;
+  cursor:pointer;letter-spacing:1px;margin-top:6px;
+  transition:opacity 0.2s;
+}
+.login-btn:hover{opacity:0.85;}
+.login-error{font-size:12px;color:var(--red);text-align:center;margin-top:8px;height:16px;}
+
+/* 主内容 */
+#main-app{display:none;position:relative;z-index:1;padding-bottom:70px;}
+
+/* 日期栏 */
+.datebar{
+  background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:10px 16px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;
+}
+.date-tabs{display:flex;gap:6px;}
+.dtab{
+  padding:5px 14px;border-radius:20px;font-size:12px;
+  cursor:pointer;border:1px solid var(--border);
+  color:var(--text2);background:transparent;transition:all 0.2s;
+}
+.dtab.on{background:var(--green);border-color:var(--green);color:#000;font-weight:700;}
+.clock{font-size:12px;color:var(--text2);font-variant-numeric:tabular-nums;}
+
+/* 红色预警横幅 */
+.alert-bar{
+  margin:14px 14px 0;
+  background:rgba(255,59,92,0.1);
+  border:1px solid rgba(255,59,92,0.35);
+  border-radius:12px;padding:12px 14px;
+  display:flex;align-items:center;gap:10px;
+  animation:ablink 2s infinite;
+}
+@keyframes ablink{0%,100%{border-color:rgba(255,59,92,0.35);}50%{border-color:rgba(255,59,92,0.8);}}
+.alert-bar .aicon{font-size:22px;}
+.alert-bar .atxt{flex:1;}
+.alert-bar .atitle{font-size:13px;font-weight:700;color:var(--red);}
+.alert-bar .adesc{font-size:11px;color:var(--text2);margin-top:2px;}
+.abadge{background:var(--red);color:#fff;border-radius:20px;padding:3px 10px;font-size:12px;font-weight:700;}
+
+/* 页面 */
+.page{display:none;padding:14px;}
+.page.on{display:block;}
+
+/* 卡片 */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;}
+
+/* 数据格 */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;}
+.stat{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:14px;padding:14px;position:relative;overflow:hidden;cursor:pointer;
+  transition:transform 0.2s;
+}
+.stat:hover{transform:translateY(-2px);}
+.stat::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;}
+.stat.g::after{background:linear-gradient(90deg,var(--green),transparent);}
+.stat.r::after{background:linear-gradient(90deg,var(--red),transparent);}
+.stat.y::after{background:linear-gradient(90deg,var(--yellow),transparent);}
+.stat.b::after{background:linear-gradient(90deg,var(--blue),transparent);}
+.stat-lbl{font-size:11px;color:var(--text2);margin-bottom:6px;}
+.stat-val{font-size:26px;font-weight:900;line-height:1;font-variant-numeric:tabular-nums;}
+.stat.g .stat-val{color:var(--green);}
+.stat.r .stat-val{color:var(--red);}
+.stat.y .stat-val{color:var(--yellow);}
+.stat.b .stat-val{color:var(--blue);}
+.stat-sub{font-size:10px;color:var(--text3);margin-top:4px;}
+.stat-ico{position:absolute;right:12px;top:12px;font-size:20px;opacity:0.2;}
+
+/* 章节标题 */
+.sec-hd{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:10px;
+}
+.sec-title{
+  font-size:12px;font-weight:700;color:var(--text2);
+  letter-spacing:1.5px;text-transform:uppercase;
+  display:flex;align-items:center;gap:6px;
+}
+.sec-title::before{
+  content:'';display:inline-block;width:3px;height:13px;
+  background:var(--green);border-radius:2px;
+}
+.sec-more{font-size:11px;color:var(--green);cursor:pointer;}
+
+/* 风险列表 */
+.risk-list{display:flex;flex-direction:column;gap:6px;}
+.risk-item{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:11px 13px;
+  display:flex;align-items:center;gap:10px;
+}
+.rdot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.rdot.h{background:var(--red);box-shadow:0 0 8px var(--red);}
+.rdot.m{background:var(--yellow);box-shadow:0 0 6px var(--yellow);}
+.rdot.l{background:var(--green);}
+.rtxt{flex:1;}
+.rname{font-size:13px;font-weight:500;}
+.rdesc{font-size:11px;color:var(--text2);margin-top:2px;}
+.rcnt{
+  font-size:12px;color:var(--text2);
+  background:var(--bg3);padding:3px 10px;border-radius:10px;
+}
+
+/* 交易条目 */
+.tx-list{display:flex;flex-direction:column;gap:6px;}
+.tx{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:11px 13px;
+  display:flex;align-items:center;gap:10px;
+  position:relative;cursor:pointer;transition:background 0.15s;
+}
+.tx:hover{background:var(--bg3);}
+.tx.danger{border-color:rgba(255,59,92,0.4);}
+.tx.warn{border-color:rgba(255,204,0,0.35);}
+.tx-ico{
+  width:34px;height:34px;border-radius:10px;
+  display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;
+}
+.tx-ico.normal{background:rgba(0,207,255,0.1);}
+.tx-ico.danger{background:rgba(255,59,92,0.15);}
+.tx-ico.warn{background:rgba(255,204,0,0.1);}
+.tx-info{flex:1;min-width:0;}
+.tx-name{font-size:13px;font-weight:500;}
+.tx-meta{font-size:11px;color:var(--text2);margin-top:2px;}
+.tx-right{text-align:right;flex-shrink:0;}
+.tx-amt{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums;}
+.tx-amt.pos{color:var(--green);}
+.tx-amt.neg{color:var(--red);}
+.tx-time{font-size:10px;color:var(--text3);margin-top:2px;}
+.tx-flag{
+  position:absolute;top:7px;right:7px;
+  font-size:10px;padding:2px 7px;border-radius:8px;font-weight:700;
+}
+.tx-flag.danger{background:rgba(255,59,92,0.2);color:var(--red);}
+.tx-flag.warn{background:rgba(255,204,0,0.15);color:var(--yellow);}
+
+/* 柱状图 */
+.chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:14px;}
+.bars{display:flex;align-items:flex-end;gap:5px;height:80px;margin-top:10px;}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;height:100%;justify-content:flex-end;}
+.bar{width:100%;border-radius:3px 3px 0 0;background:linear-gradient(180deg,var(--green),rgba(0,255,136,0.2));min-height:3px;transition:height 0.5s ease;}
+.bar.today{background:linear-gradient(180deg,var(--blue),rgba(0,207,255,0.2));}
+.bar-lbl{font-size:9px;color:var(--text3);}
+
+/* 进货表 */
+.stk-table{width:100%;border-collapse:collapse;}
+.stk-table th{background:var(--bg3);padding:9px 10px;font-size:10px;color:var(--text2);text-align:left;font-weight:500;letter-spacing:0.5px;}
+.stk-table td{padding:9px 10px;font-size:12px;border-bottom:1px solid var(--border);}
+.stk-table tr:last-child td{border-bottom:none;}
+.sinput{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:6px;padding:4px 7px;color:var(--text);
+  font-size:12px;width:60px;text-align:center;outline:none;
+}
+.sinput:focus{border-color:var(--green);}
+.ltag{font-size:10px;padding:2px 7px;border-radius:6px;font-weight:600;}
+.lok{background:rgba(0,255,136,0.1);color:var(--green);}
+.lwarn{background:rgba(255,204,0,0.1);color:var(--yellow);}
+.lbad{background:rgba(255,59,92,0.1);color:var(--red);}
+
+/* 现金核对 */
+.cash-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:10px 0;border-bottom:1px solid var(--border);font-size:13px;
+}
+.cash-row:last-child{border-bottom:none;}
+.cash-row label{color:var(--text2);font-size:12px;}
+.cinput{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:6px 10px;color:var(--text);
+  font-size:14px;width:110px;text-align:right;outline:none;font-variant-numeric:tabular-nums;
+}
+.cinput:focus{border-color:var(--green);}
+.cash-result{
+  display:flex;justify-content:space-between;align-items:center;
+  margin-top:12px;padding:10px 13px;
+  background:rgba(0,255,136,0.07);
+  border:1px solid rgba(0,255,136,0.2);border-radius:10px;
+}
+.cash-result.bad{background:rgba(255,59,92,0.07);border-color:rgba(255,59,92,0.25);}
+.cr-lbl{font-size:12px;color:var(--text2);}
+.cr-val{font-size:20px;font-weight:900;color:var(--green);font-variant-numeric:tabular-nums;}
+.cash-result.bad .cr-val{color:var(--red);}
+
+/* 员工分析 */
+.op-card{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:12px;padding:13px;margin-bottom:8px;
+}
+.op-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;}
+.op-name{font-size:14px;font-weight:700;}
+.op-badge{font-size:11px;padding:3px 10px;border-radius:10px;font-weight:700;}
+.op-badge.safe{background:rgba(0,255,136,0.1);color:var(--green);}
+.op-badge.risk{background:rgba(255,204,0,0.1);color:var(--yellow);}
+.op-badge.danger{background:rgba(255,59,92,0.1);color:var(--red);}
+.op-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;}
+.op-stat{background:var(--bg3);border-radius:8px;padding:7px;text-align:center;}
+.op-stat-val{font-size:16px;font-weight:700;font-variant-numeric:tabular-nums;}
+.op-stat-lbl{font-size:10px;color:var(--text2);margin-top:2px;}
+.progress-bar{height:3px;background:var(--bg3);border-radius:2px;margin-top:8px;overflow:hidden;}
+.progress-fill{height:100%;border-radius:2px;background:var(--green);transition:width 0.5s;}
+.progress-fill.risk{background:var(--yellow);}
+.progress-fill.danger{background:var(--red);}
+
+/* 上传区 */
+.drop-zone{
+  border:2px dashed var(--border);border-radius:14px;
+  padding:32px 16px;text-align:center;cursor:pointer;
+  transition:all 0.3s;background:var(--bg2);margin-bottom:14px;
+}
+.drop-zone:hover{border-color:var(--green);}
+.drop-zone .dico{font-size:36px;margin-bottom:10px;}
+.drop-zone .dtitle{font-size:14px;font-weight:700;margin-bottom:5px;}
+.drop-zone .dsub{font-size:11px;color:var(--text2);}
+.how-box{
+  background:rgba(0,207,255,0.05);border:1px solid rgba(0,207,255,0.2);
+  border-radius:12px;padding:13px 14px;margin-bottom:14px;
+}
+.how-title{font-size:12px;font-weight:700;color:var(--blue);margin-bottom:7px;}
+.how-step{font-size:12px;color:var(--text2);line-height:2.2;}
+
+/* 设置 */
+.set-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:11px 0;border-bottom:1px solid var(--border);
+}
+.set-row:last-child{border-bottom:none;}
+.set-lbl{font-size:13px;}
+.set-sub{font-size:11px;color:var(--text2);margin-top:2px;}
+.set-input{
+  background:var(--bg3);border:1px solid var(--border);
+  border-radius:8px;padding:6px 10px;color:var(--text);
+  font-size:13px;width:90px;text-align:center;outline:none;
+}
+.set-input:focus{border-color:var(--green);}
+
+/* 按钮 */
+.btn{
+  padding:10px 18px;border-radius:10px;border:none;
+  font-size:13px;font-weight:700;cursor:pointer;transition:opacity 0.2s;
+}
+.btn:hover{opacity:0.82;}
+.btn-g{background:linear-gradient(135deg,var(--green),var(--green2));color:#000;}
+.btn-r{background:var(--red);color:#fff;}
+.btn-sm{padding:4px 10px;font-size:11px;border-radius:6px;}
+.btn-block{width:100%;padding:12px;font-size:14px;}
+
+/* 底部导航 */
+.bnav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:rgba(19,25,24,0.97);
+  border-top:1px solid var(--border);
+  display:flex;z-index:100;backdrop-filter:blur(10px);
+}
+.bni{
+  flex:1;padding:9px 0;display:flex;flex-direction:column;
+  align-items:center;gap:3px;cursor:pointer;
+  color:var(--text3);font-size:10px;transition:color 0.2s;
+}
+.bni.on{color:var(--green);}
+.bni .ni{font-size:20px;}
+.nbadge{
+  position:absolute;top:5px;background:var(--red);color:#fff;
+  font-size:9px;padding:1px 5px;border-radius:8px;font-weight:700;
+}
+.nwrap{position:relative;}
+
+/* 加入弹窗 */
+.modal{
+  position:fixed;inset:0;z-index:200;
+  background:rgba(0,0,0,0.7);
+  display:none;align-items:center;justify-content:center;
+  backdrop-filter:blur(4px);
+}
+.modal.show{display:flex;}
+.modal-box{
+  background:var(--bg2);border:1px solid var(--border);
+  border-radius:16px;padding:24px;width:90%;max-width:340px;
+}
+.modal-title{font-size:15px;font-weight:700;margin-bottom:14px;color:var(--green);}
+.modal-body{font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px;}
+.modal-btns{display:flex;gap:8px;}
+.modal-btns .btn{flex:1;}
+
+/* Toast */
+.toast{
+  position:fixed;top:70px;left:50%;
+  transform:translateX(-50%) translateY(-20px);
+  background:var(--green);color:#000;
+  padding:9px 20px;border-radius:20px;
+  font-size:13px;font-weight:700;
+  opacity:0;transition:all 0.3s;z-index:999;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+/* 分析结果 */
+#analysis-result{display:none;}
+</style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="login-page">
+  <div class="login-box">
+    <div class="login-logo">
+      <span class="big-icon">🔒</span>
+      <h2>防盗监控系统</h2>
+      <p>小型超市 · 老板专属</p>
+    </div>
+    <div class="login-field">
+      <label>账号</label>
+      <input type="text" id="u" placeholder="请输入账号" value="admin">
+    </div>
+    <div class="login-field">
+      <label>密码</label>
+      <input type="password" id="p" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+    </div>
+    <button class="btn btn-g btn-block" onclick="doLogin()">登 录</button>
+    <div class="login-error" id="lerr"></div>
+    <div style="font-size:11px;color:var(--text3);text-align:center;margin-top:12px;">默认账号 admin · 密码 8888</div>
+  </div>
+</div>
+
+<!-- 主应用 -->
+<div id="main-app">
+
+<!-- 顶部 -->
+<div class="topbar">
+  <div class="top-left">
+    <div class="logo-icon">防盗</div>
+    <div>
+      <div class="top-title">看店系统</div>
+      <div class="top-sub">老板专属 · 实时监控</div>
+    </div>
+  </div>
+  <div class="status-pill"><div class="pulse"></div><span id="clk">--:--</span></div>
+</div>
+
+<!-- 日期栏 -->
+<div class="datebar">
+  <div class="date-tabs">
+    <button class="dtab on" onclick="setTab(this,'今天')">今天</button>
+    <button class="dtab" onclick="setTab(this,'昨天')">昨天</button>
+    <button class="dtab" onclick="setTab(this,'本周')">本周</button>
+    <button class="dtab" onclick="setTab(this,'本月')">本月</button>
+  </div>
+  <div class="clock" id="dshow"></div>
+</div>
+
+<!-- 预警横幅 -->
+<div class="alert-bar" id="alert-bar">
+  <div class="aicon">🚨</div>
+  <div class="atxt">
+    <div class="atitle">今日发现异常交易</div>
+    <div class="adesc" id="alert-desc">退款2笔 · 无码3笔 · 改价1笔</div>
+  </div>
+  <div class="abadge" id="alert-cnt">6</div>
+</div>
+
+<!-- 页面：首页 -->
+<div class="page on" id="pg-home">
+
+  <!-- 数据格 -->
+  <div class="stat-grid" style="margin-top:14px;">
+    <div class="stat g"><div class="stat-ico">💰</div><div class="stat-lbl">今日营业额</div><div class="stat-val">2,847</div><div class="stat-sub">↑ 较昨日+12%</div></div>
+    <div class="stat b"><div class="stat-ico">🧾</div><div class="stat-lbl">交易笔数</div><div class="stat-val">86</div><div class="stat-sub">均单¥33.1</div></div>
+    <div class="stat r"><div class="stat-ico">⚠️</div><div class="stat-lbl">异常笔数</div><div class="stat-val">6</div><div class="stat-sub">需立即核查</div></div>
+    <div class="stat y"><div class="stat-ico">↩️</div><div class="stat-lbl">退款金额</div><div class="stat-val">43</div><div class="stat-sub">共2笔退款</div></div>
+  </div>
+
+  <!-- 近7日图表 -->
+  <div class="chart-wrap">
+    <div class="sec-title">近7日营业额</div>
+    <div class="bars" id="main-chart"></div>
+  </div>
+
+  <!-- 风险预警 -->
+  <div class="sec-hd"><div class="sec-title">风险预警</div></div>
+  <div class="risk-list" style="margin-bottom:14px;">
+    <div class="risk-item"><div class="rdot h"></div><div class="rtxt"><div class="rname">🔴 称重改价 — 高风险</div><div class="rdesc">今日书龙称发现价格修改，西红柿5.8→2.0元/斤</div></div><div class="rcnt">1次</div></div>
+    <div class="risk-item"><div class="rdot m"></div><div class="rtxt"><div class="rname">🟡 无码商品偏多</div><div class="rdesc">今日无码商品3笔，占比3.5%（正常应&lt;1%）</div></div><div class="rcnt">3笔</div></div>
+    <div class="risk-item"><div class="rdot m"></div><div class="rtxt"><div class="rname">🟡 退款未见实物</div><div class="rdesc">2笔退款无对应商品退回记录</div></div><div class="rcnt">2笔</div></div>
+    <div class="risk-item"><div class="rdot m"></div><div class="rtxt"><div class="rname">🟡 黄瓜损耗异常</div><div class="rdesc">今日损耗率13.3%，超出正常范围(5%)</div></div><div class="rcnt">4斤</div></div>
+    <div class="risk-item"><div class="rdot l"></div><div class="rtxt"><div class="rname">🟢 现金核对</div><div class="rdesc">今日现金尚未核对，请下班前完成</div></div><div class="rcnt">待核</div></div>
+  </div>
+
+  <!-- 今日异常交易 -->
+  <div class="sec-hd"><div class="sec-title">今日异常交易</div><span class="sec-more" onclick="switchPage('pg-tx')">全部→</span></div>
+  <div class="tx-list">
+    <div class="tx danger"><div class="tx-flag danger">退款</div><div class="tx-ico danger">↩️</div><div class="tx-info"><div class="tx-name">退款操作</div><div class="tx-meta">收银员：张三 · 无退货商品记录</div></div><div class="tx-right"><div class="tx-amt neg">-¥28.00</div><div class="tx-time">09:14</div></div></div>
+    <div class="tx warn"><div class="tx-flag warn">无码</div><div class="tx-ico warn">❓</div><div class="tx-info"><div class="tx-name">无码商品×3</div><div class="tx-meta">手输金额，未扫条码</div></div><div class="tx-right"><div class="tx-amt pos">+¥15.00</div><div class="tx-time">11:32</div></div></div>
+    <div class="tx danger"><div class="tx-flag danger">退款</div><div class="tx-ico danger">↩️</div><div class="tx-info"><div class="tx-name">退款操作</div><div class="tx-meta">收银员：张三 · 同顾客重复退款</div></div><div class="tx-right"><div class="tx-amt neg">-¥15.00</div><div class="tx-time">14:07</div></div></div>
+    <div class="tx warn"><div class="tx-flag warn">改价</div><div class="tx-ico warn">✏️</div><div class="tx-info"><div class="tx-name">称重改价</div><div class="tx-meta">西红柿 5.80→2.00元/斤</div></div><div class="tx-right"><div class="tx-amt neg">-¥7.20</div><div class="tx-time">15:49</div></div></div>
+  </div>
+</div>
+
+<!-- 页面：交易记录 -->
+<div class="page" id="pg-tx">
+  <div style="margin-bottom:10px;display:flex;gap:6px;flex-wrap:wrap;">
+    <button class="dtab on" onclick="filterTx(this,'all')">全部</button>
+    <button class="dtab" onclick="filterTx(this,'danger')">退款</button>
+    <button class="dtab" onclick="filterTx(this,'warn')">无码/改价</button>
+    <button class="dtab" onclick="filterTx(this,'normal')">正常</button>
+  </div>
+  <div class="tx-list" id="all-tx"></div>
+</div>
+
+<!-- 页面：进货盘点 -->
+<div class="page" id="pg-stock">
+
+  <div class="sec-hd" style="margin-bottom:10px;"><div class="sec-title">今日进货录入</div></div>
+  <div class="card">
+    <table class="stk-table">
+      <thead><tr><th>商品</th><th>进货(斤)</th><th>已售(斤)</th><th>盘点(斤)</th><th>损耗</th></tr></thead>
+      <tbody id="stk-body">
+        <tr><td>西红柿</td><td><input class="sinput" type="number" value="50" oninput="calcLoss(this,0)"></td><td>23.5</td><td><input class="sinput" type="number" value="24" oninput="calcLoss(this,0)"></td><td><span class="ltag lok" id="l0">2.5斤✓</span></td></tr>
+        <tr><td>黄瓜</td><td><input class="sinput" type="number" value="30" oninput="calcLoss(this,1)"></td><td>18.0</td><td><input class="sinput" type="number" value="8" oninput="calcLoss(this,1)"></td><td><span class="ltag lbad" id="l1">4斤⚠</span></td></tr>
+        <tr><td>苹果</td><td><input class="sinput" type="number" value="40" oninput="calcLoss(this,2)"></td><td>31.2</td><td><input class="sinput" type="number" value="7" oninput="calcLoss(this,2)"></td><td><span class="ltag lwarn" id="l2">1.8斤~</span></td></tr>
+      </tbody>
+    </table>
+    <div style="display:flex;gap:7px;padding:11px;border-top:1px solid var(--border);flex-wrap:wrap;">
+      <input class="sinput" id="ng" placeholder="商品名" style="width:80px;flex:1;">
+      <input class="sinput" id="nq" placeholder="进货斤" type="number" style="width:70px;">
+      <button class="btn btn-g btn-sm" onclick="addStock()">+ 添加</button>
+    </div>
+  </div>
+
+  <div class="sec-hd"><div class="sec-title">损耗汇总</div></div>
+  <div class="risk-list">
+    <div class="risk-item"><div class="rdot l"></div><div class="rtxt"><div class="rname">西红柿</div><div class="rdesc">损耗率5%，正常</div></div><div class="rcnt">2.5斤</div></div>
+    <div class="risk-item"><div class="rdot h"></div><div class="rtxt"><div class="rname">黄瓜 ⚠ 异常！</div><div class="rdesc">损耗率13.3%，超出正常5%！建议核查</div></div><div class="rcnt">4斤</div></div>
+    <div class="risk-item"><div class="rdot m"></div><div class="rtxt"><div class="rname">苹果</div><div class="rdesc">损耗率4.5%，略偏高</div></div><div class="rcnt">1.8斤</div></div>
+  </div>
+</div>
+
+<!-- 页面：现金核对 -->
+<div class="page" id="pg-cash">
+
+  <div class="sec-hd" style="margin-bottom:10px;"><div class="sec-title">今日现金核对</div></div>
+  <div class="card" style="padding:14px;">
+    <div class="cash-row"><label>系统应收现金</label><span style="font-size:15px;font-weight:700;color:var(--green)">¥532.50</span></div>
+    <div class="cash-row"><label>微信+支付宝收款</label><span style="font-size:15px;color:var(--blue)">¥2,314.50</span></div>
+    <div class="cash-row"><label>早上备用金</label><input class="cinput" type="number" id="creserve" value="200" oninput="calcCash()"></div>
+    <div class="cash-row"><label>实际点钞金额</label><input class="cinput" type="number" id="cactual" placeholder="输入金额" oninput="calcCash()"></div>
+    <div class="cash-result" id="cash-res">
+      <div class="cr-lbl">差额</div>
+      <div class="cr-val" id="cash-diff">请输入实际现金</div>
+    </div>
+  </div>
+
+  <div class="sec-hd"><div class="sec-title">退款复核</div></div>
+  <div class="tx-list">
+    <div class="tx danger"><div class="tx-flag danger">待核查</div><div class="tx-ico danger">↩️</div><div class="tx-info"><div class="tx-name">09:14 退款¥28.00</div><div class="tx-meta">收银员：张三 · 原因未填写</div></div><div class="tx-right"><button class="btn btn-g btn-sm" onclick="markOk(this)">核查✓</button></div></div>
+    <div class="tx danger"><div class="tx-flag danger">待核查</div><div class="tx-ico danger">↩️</div><div class="tx-info"><div class="tx-name">14:07 退款¥15.00</div><div class="tx-meta">收银员：张三 · 同顾客重复退款</div></div><div class="tx-right"><button class="btn btn-g btn-sm" onclick="markOk(this)">核查✓</button></div></div>
+  </div>
+
+  <div class="sec-hd" style="margin-top:14px;"><div class="sec-title">员工行为分析</div></div>
+  <div class="op-card">
+    <div class="op-hd"><div class="op-name">👤 张三</div><div class="op-badge danger">高风险</div></div>
+    <div class="op-stats">
+      <div class="op-stat"><div class="op-stat-val" style="color:var(--green)">¥1,240</div><div class="op-stat-lbl">收款额</div></div>
+      <div class="op-stat"><div class="op-stat-val" style="color:var(--blue)">43</div><div class="op-stat-lbl">交易笔</div></div>
+      <div class="op-stat"><div class="op-stat-val" style="color:var(--red)">2</div><div class="op-stat-lbl">退款次</div></div>
+      <div class="op-stat"><div class="op-stat-val" style="color:var(--yellow)">3</div><div class="op-stat-lbl">无码次</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill danger" style="width:75%"></div></div>
+  </div>
+  <div class="op-card">
+    <div class="op-hd"><div class="op-name">👤 李四</div><div class="op-badge safe">正常</div></div>
+    <div class="op-stats">
+      <div class="op-stat"><div class="op-stat-val" style="color:var(--green)">¥1,607</div><div class="op-stat-lbl">收款额</div></div>
+      <div class="op-stat"><div class="op-stat-val" style="color:var(--blue)">43</div><div class="op-stat-lbl">交易笔</div></div>
+      <div class="op-stat"><div class="op-stat-val" style="color:var(--red)">0</div><div class="op-stat-lbl">退款次</div></div>
+      <div class="op-stat"><div class="op-stat-val" style="color:var(--yellow)">0</div><div class="op-stat-lbl">无码次</div></div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" style="width:20%"></div></div>
+  </div>
+</div>
+
+<!-- 页面：导入报表 -->
+<div class="page" id="pg-import">
+  <div class="drop-zone" id="dzone" onclick="document.getElementById('fInput').click()"
+    ondragover="event.preventDefault();this.style.borderColor='var(--green)'"
+    ondragleave="this.style.borderColor='var(--border)'"
+    ondrop="handleDrop(event)">
+    <div class="dico">📊</div>
+    <div class="dtitle">上传尚米云导出报表</div>
+    <div class="dsub">支持 .xlsx / .xls / .csv · 点击或拖拽</div>
+    <input type="file" id="fInput" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFile(this.files[0])">
+  </div>
+  <div class="how-box">
+    <div class="how-title">📌 导出步骤</div>
+    <div class="how-step">
+      1. 打开尚米云收银系统<br>
+      2. 点击右侧「报表」按钮<br>
+      3. 选择「销售明细」或「交易流水」<br>
+      4. 选日期 → 点「导出Excel」<br>
+      5. 上传到这里，自动分析
+    </div>
+  </div>
+  <div id="analysis-result">
+    <div class="alert-bar" id="imp-alert" style="margin:0 0 12px;">
+      <div class="aicon" id="imp-ico">✅</div>
+      <div class="atxt">
+        <div class="atitle" id="imp-title">分析完成</div>
+        <div class="adesc" id="imp-desc">共解析0条记录</div>
+      </div>
+    </div>
+    <div class="stat-grid" style="margin-bottom:12px;">
+      <div class="stat g"><div class="stat-lbl">总营业额</div><div class="stat-val" id="r-tot">0</div></div>
+      <div class="stat b"><div class="stat-lbl">交易笔数</div><div class="stat-val" id="r-cnt">0</div></div>
+      <div class="stat r"><div class="stat-lbl">退款金额</div><div class="stat-val" id="r-ref">0</div></div>
+      <div class="stat y"><div class="stat-lbl">无码笔数</div><div class="stat-val" id="r-noc">0</div></div>
+    </div>
+    <div class="sec-hd"><div class="sec-title">异常明细</div><span id="anom-cnt" style="font-size:11px;color:var(--red);">0条</span></div>
+    <div class="tx-list" id="anom-list" style="margin-bottom:12px;"></div>
+    <div class="sec-hd"><div class="sec-title">员工分析</div></div>
+    <div id="op-list" style="margin-bottom:12px;"></div>
+    <button class="btn btn-g btn-block" onclick="resetImport()">重新上传</button>
+  </div>
+</div>
+
+<!-- 页面：设置 -->
+<div class="page" id="pg-set">
+  <div class="sec-hd" style="margin-bottom:10px;"><div class="sec-title">预警阈值设置</div></div>
+  <div class="card" style="padding:14px;">
+    <div class="set-row"><div><div class="set-lbl">退款超过多少笔预警</div><div class="set-sub">超出即触发红色预警</div></div><input class="set-input" type="number" value="2"></div>
+    <div class="set-row"><div><div class="set-lbl">无码商品超过多少笔</div><div class="set-sub">手输金额笔数上限</div></div><input class="set-input" type="number" value="3"></div>
+    <div class="set-row"><div><div class="set-lbl">损耗率超过多少%预警</div><div class="set-sub">单品损耗率上限</div></div><input class="set-input" type="number" value="10"></div>
+    <div class="set-row"><div><div class="set-lbl">现金差额超过多少元</div><div class="set-sub">差额绝对值上限</div></div><input class="set-input" type="number" value="20"></div>
+    <button class="btn btn-g btn-block" style="margin-top:12px;" onclick="toast('设置已保存 ✓')">保存设置</button>
+  </div>
+
+  <div class="sec-hd" style="margin-bottom:10px;"><div class="sec-title">修改密码</div></div>
+  <div class="card" style="padding:14px;">
+    <div class="set-row"><div class="set-lbl">当前密码</div><input class="set-input" type="password" id="op" placeholder="旧密码"></div>
+    <div class="set-row"><div class="set-lbl">新密码</div><input class="set-input" type="password" id="np" placeholder="新密码"></div>
+    <div class="set-row"><div class="set-lbl">确认新密码</div><input class="set-input" type="password" id="cp" placeholder="确认密码"></div>
+    <button class="btn btn-g btn-block" style="margin-top:12px;" onclick="changePwd()">修改密码</button>
+  </div>
+
+  <div class="sec-hd" style="margin-bottom:10px;"><div class="sec-title">系统信息</div></div>
+  <div class="card" style="padding:14px;font-size:12px;color:var(--text2);line-height:2.2;">
+    <div>📌 版本：v2.0 · 2026-05-05</div>
+    <div>🏪 收银系统：尚米云新零售 v.243</div>
+    <div>⚖️ 称重系统：书龙购物·田图识别 v4.6.4.84</div>
+    <div>📷 摄像头：2路远程监控</div>
+    <div style="margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">
+      <button class="btn btn-r btn-sm" onclick="doLogout()">退出登录</button>
+    </div>
+  </div>
+</div>
+
+</div><!-- end main-app -->
+
+<!-- 底部导航 -->
+<div class="bnav" id="bnav" style="display:none;">
+  <div class="bni on" onclick="switchPage('pg-home')">
+    <div class="nwrap"><span class="ni">🏠</span><span class="nbadge">6</span></div>
+    <span>首页</span>
+  </div>
+  <div class="bni" onclick="switchPage('pg-tx')">
+    <span class="ni">🧾</span><span>交易</span>
+  </div>
+  <div class="bni" onclick="switchPage('pg-stock')">
+    <span class="ni">📦</span><span>进货</span>
+  </div>
+  <div class="bni" onclick="switchPage('pg-cash')">
+    <span class="ni">💰</span><span>现金</span>
+  </div>
+  <div class="bni" onclick="switchPage('pg-import')">
+    <span class="ni">📤</span><span>导入</span>
+  </div>
+  <div class="bni" onclick="switchPage('pg-set')">
+    <span class="ni">⚙️</span><span>设置</span>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== 账号密码（存本地）=====
+function getCredentials(){
+  return {u:localStorage.getItem('kd_u')||'admin', p:localStorage.getItem('kd_p')||'8888'};
+}
+
+// ===== 登录 =====
+function doLogin(){
+  const u=document.getElementById('u').value.trim();
+  const p=document.getElementById('p').value.trim();
+  const c=getCredentials();
+  if(u===c.u && p===c.p){
+    document.getElementById('login-page').style.display='none';
+    document.getElementById('main-app').style.display='block';
+    document.getElementById('bnav').style.display='flex';
+    document.getElementById('lerr').textContent='';
+  } else {
+    document.getElementById('lerr').textContent='账号或密码错误，默认 admin / 8888';
+  }
+}
+function doLogout(){
+  document.getElementById('login-page').style.display='flex';
+  document.getElementById('main-app').style.display='none';
+  document.getElementById('bnav').style.display='none';
+  document.getElementById('p').value='';
+}
+function changePwd(){
+  const op=document.getElementById('op').value;
+  const np=document.getElementById('np').value;
+  const cp=document.getElementById('cp').value;
+  const c=getCredentials();
+  if(op!==c.p){toast('当前密码错误');return;}
+  if(np.length<4){toast('新密码至少4位');return;}
+  if(np!==cp){toast('两次密码不一致');return;}
+  localStorage.setItem('kd_p',np);
+  toast('密码已修改 ✓');
+  document.getElementById('op').value='';
+  document.getElementById('np').value='';
+  document.getElementById('cp').value='';
+}
+
+// ===== 时钟 =====
+function tick(){
+  const n=new Date();
+  const s=t=>t.toString().padStart(2,'0');
+  document.getElementById('clk').textContent=`${s(n.getHours())}:${s(n.getMinutes())}:${s(n.getSeconds())}`;
+  document.getElementById('dshow').textContent=n.toISOString().slice(0,10);
+}
+setInterval(tick,1000);tick();
+
+// ===== 日期Tab =====
+function setTab(el,lbl){
+  document.querySelectorAll('.dtab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+}
+
+// ===== 页面切换 =====
+const pages=['pg-home','pg-tx','pg-stock','pg-cash','pg-import','pg-set'];
+function switchPage(id){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('on'));
+  document.getElementById(id).classList.add('on');
+  document.querySelectorAll('.bni').forEach(n=>n.classList.remove('on'));
+  const i=pages.indexOf(id);
+  if(i>=0)document.querySelectorAll('.bni')[i].classList.add('on');
+  window.scrollTo(0,0);
+}
+
+// ===== 图表 =====
+const vals=[1820,2100,1650,2430,1980,2710,2847];
+const lbls=['周四','周五','周六','周日','周一','周二','今天'];
+const mxv=Math.max(...vals);
+const ch=document.getElementById('main-chart');
+vals.forEach((v,i)=>{
+  const w=document.createElement('div');
+  w.className='bar-wrap';
+  w.innerHTML=`<div class="bar${i===vals.length-1?' today':''}" style="height:${(v/mxv*100).toFixed(0)}%"></div><div class="bar-lbl">${lbls[i]}</div>`;
+  ch.appendChild(w);
+});
+
+// ===== 全部交易 =====
+const allTxData=[
+  {t:'normal',ico:'🛒',n:'正常收款',m:'微信支付',a:'+¥58.40',tm:'08:03'},
+  {t:'normal',ico:'🛒',n:'正常收款',m:'支付宝',a:'+¥23.00',tm:'08:31'},
+  {t:'danger',ico:'↩️',n:'退款操作',m:'收银员：张三·无退货商品',a:'-¥28.00',tm:'09:14',f:'退款'},
+  {t:'normal',ico:'🛒',n:'正常收款',m:'微信支付',a:'+¥112.00',tm:'10:05'},
+  {t:'warn',ico:'❓',n:'无码商品×3',m:'手输金额未扫码',a:'+¥15.00',tm:'11:32',f:'无码'},
+  {t:'normal',ico:'🛒',n:'正常收款',m:'现金',a:'+¥45.50',tm:'12:18'},
+  {t:'danger',ico:'↩️',n:'退款操作',m:'收银员：张三·同顾客重复退款',a:'-¥15.00',tm:'14:07',f:'退款'},
+  {t:'warn',ico:'✏️',n:'称重改价',m:'西红柿5.80→2.00元/斤',a:'-¥7.20',tm:'15:49',f:'改价'},
+  {t:'normal',ico:'🛒',n:'正常收款',m:'微信支付',a:'+¥88.00',tm:'16:30'},
+  {t:'normal',ico:'🛒',n:'正常收款',m:'支付宝',a:'+¥34.00',tm:'17:12'},
+];
+let curFilter='all';
+function filterTx(el,f){
+  curFilter=f;
+  document.querySelectorAll('#pg-tx .dtab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on');
+  renderTx();
+}
+function renderTx(){
+  const list=document.getElementById('all-tx');
+  list.innerHTML='';
+  const filtered=curFilter==='all'?allTxData:allTxData.filter(tx=>
+    curFilter==='normal'?tx.t==='normal':tx.t===curFilter||
+    (curFilter==='warn'&&(tx.t==='warn'))
+  );
+  filtered.forEach(tx=>{
+    const el=document.createElement('div');
+    el.className=`tx ${tx.t!=='normal'?tx.t:''}`;
+    el.innerHTML=`
+      ${tx.f?`<div class="tx-flag ${tx.t}">${tx.f}</div>`:''}
+      <div class="tx-ico ${tx.t}">${tx.ico}</div>
+      <div class="tx-info"><div class="tx-name">${tx.n}</div><div class="tx-meta">${tx.m}</div></div>
+      <div class="tx-right"><div class="tx-amt ${tx.a.startsWith('+')?' pos':'neg'}">${tx.a}</div><div class="tx-time">${tx.tm}</div></div>`;
+    list.appendChild(el);
+  });
+}
+renderTx();
+
+// ===== 进货 =====
+let stkRows=3;
+function addStock(){
+  const n=document.getElementById('ng').value.trim();
+  const q=document.getElementById('nq').value;
+  if(!n||!q){toast('请填写商品名称和进货量');return;}
+  const i=stkRows++;
+  const tr=document.createElement('tr');
+  tr.innerHTML=`<td>${n}</td><td><input class="sinput" type="number" value="${q}" oninput="calcLoss(this,${i})"></td><td>0</td><td><input class="sinput" type="number" value="${q}" oninput="calcLoss(this,${i})"></td><td><span class="ltag lok" id="l${i}">0斤✓</span></td>`;
+  document.getElementById('stk-body').appendChild(tr);
+  document.getElementById('ng').value='';
+  document.getElementById('nq').value='';
+  toast('已添加：'+n);
+}
+function calcLoss(el,idx){
+  const row=el.closest('tr');
+  const inputs=row.querySelectorAll('input');
+  const jin=parseFloat(inputs[0].value)||0;
+  const sold=parseFloat(row.cells[2].textContent)||0;
+  const cnt=parseFloat(inputs[1].value)||0;
+  const loss=jin-sold-cnt;
+  const rate=jin>0?(loss/jin*100):0;
+  const tag=document.getElementById('l'+idx);
+  if(!tag)return;
+  if(rate<0){tag.className='ltag lok';tag.textContent=`${loss.toFixed(1)}斤✓`;}
+  else if(rate<8){tag.className='ltag lwarn';tag.textContent=`${loss.toFixed(1)}斤~`;}
+  else{tag.className='ltag lbad';tag.textContent=`${loss.toFixed(1)}斤⚠`;}
+}
+
+// ===== 现金 =====
+function calcCash(){
+  const actual=parseFloat(document.getElementById('cactual').value)||0;
+  const reserve=parseFloat(document.getElementById('creserve').value)||0;
+  const should=532.50;
+  if(!document.getElementById('cactual').value){
+    document.getElementById('cash-diff').textContent='请输入实际现金';return;
+  }
+  const diff=actual-reserve-should;
+  const res=document.getElementById('cash-res');
+  const dv=document.getElementById('cash-diff');
+  dv.textContent=(diff>=0?'+':'')+'¥'+diff.toFixed(2);
+  res.className='cash-result'+(diff<-20?' bad':'');
+  if(diff<-20)toast('⚠️ 现金短少超过20元，请核查！');
+}
+
+// ===== 核查 =====
+function markOk(btn){
+  const tx=btn.closest('.tx');
+  tx.classList.remove('danger');
+  const flag=tx.querySelector('.tx-flag');
+  if(flag){flag.className='tx-flag';flag.style.background='rgba(0,255,136,0.1)';flag.style.color='var(--green)';flag.textContent='已核查';}
+  btn.textContent='已完成';btn.disabled=true;btn.style.opacity='0.5';
+  toast('已标记核查完成 ✓');
+}
+
+// ===== Excel导入 =====
+function handleDrop(e){
+  e.preventDefault();
+  document.getElementById('dzone').style.borderColor='var(--border)';
+  const f=e.dataTransfer.files[0];if(f)handleFile(f);
+}
+function handleFile(file){
+  if(!file)return;
+  const ext=file.name.split('.').pop().toLowerCase();
+  if(ext==='csv'){const r=new FileReader();r.onload=e=>parseCSV(e.target.result,file.name);r.readAsText(file,'UTF-8');}
+  else if(ext==='xlsx'||ext==='xls'){
+    loadXLSX(()=>{
+      const r=new FileReader();
+      r.onload=e=>{
+        try{const wb=XLSX.read(e.target.result,{type:'array'});const ws=wb.Sheets[wb.SheetNames[0]];parseCSV(XLSX.utils.sheet_to_csv(ws),file.name);}
+        catch(err){toast('解析失败，请尝试导出CSV');}
+      };
+      r.readAsArrayBuffer(file);
+    });
+  } else {toast('请上传.xlsx .xls或.csv文件');}
+}
+function loadXLSX(cb){
+  if(window.XLSX){cb();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=cb;document.head.appendChild(s);
+}
+function parseCSV(text,fname){
+  if(text.charCodeAt(0)===0xFEFF)text=text.slice(1);
+  const lines=text.split('\n').filter(l=>l.trim());
+  if(lines.length<2){toast('文件内容为空');return;}
+  const headers=splitLine(lines[0]);
+  const rows=[];
+  for(let i=1;i<lines.length;i++){
+    const v=splitLine(lines[i]);if(v.length<2)continue;
+    const row={};headers.forEach((h,j)=>row[h.trim()]=(v[j]||'').trim());rows.push(row);
+  }
+  analyzeRows(rows,fname);
+}
+function splitLine(line){
+  const r=[];let cur='',inQ=false;
+  for(let i=0;i<line.length;i++){
+    const c=line[i];
+    if(c==='"'){inQ=!inQ;}else if(c===','&&!inQ){r.push(cur);cur='';}else{cur+=c;}
+  }
+  r.push(cur);return r;
+}
+function fc(row,cands){for(const k of Object.keys(row))if(cands.some(c=>k.includes(c)))return row[k];return '';}
+function analyzeRows(rows,fname){
+  let inc=0,ref=0,tcnt=0,rcnt=0,noc=0;
+  const anoms=[];const ops={};
+  rows.forEach(row=>{
+    const amt=parseFloat((fc(row,['金额','实付','应收','收款','总价','合计'])||'0').replace(/[^0-9.-]/g,''))||0;
+    const tm=fc(row,['时间','日期','交易时间']);
+    const type=fc(row,['类型','交易类型','单据类型']);
+    const oper=fc(row,['操作员','收银员','员工'])||'未知';
+    const goods=fc(row,['商品','品名','名称']);
+    const code=fc(row,['条码','条形码','编码']);
+    const isRef=type.includes('退')||amt<0;
+    const isNoc=code===''||code==='-'||goods.includes('无码');
+    if(isRef){ref+=Math.abs(amt);rcnt++;}else{inc+=amt;tcnt++;}
+    if(isNoc)noc++;
+    if(!ops[oper])ops[oper]={inc:0,cnt:0,ref:0,noc:0};
+    if(isRef)ops[oper].ref++;else{ops[oper].inc+=amt;ops[oper].cnt++;}
+    if(isNoc)ops[oper].noc++;
+    if(isRef)anoms.push({t:'danger',f:'退款',ico:'↩️',n:`退款¥${Math.abs(amt).toFixed(2)}`,m:`${oper}·${tm}`,a:`-¥${Math.abs(amt).toFixed(2)}`,tm});
+    else if(isNoc)anoms.push({t:'warn',f:'无码',ico:'❓',n:'无码商品',m:`${oper}·${goods||'未知'}`,a:`+¥${amt.toFixed(2)}`,tm});
+  });
+  // 渲染
+  document.getElementById('dzone').style.display='none';
+  document.getElementById('analysis-result').style.display='block';
+  const hasAnoms=anoms.length>0;
+  document.getElementById('imp-ico').textContent=hasAnoms?'🚨':'✅';
+  document.getElementById('imp-title').textContent=hasAnoms?`发现${anoms.length}条异常`:'未发现明显异常 ✓';
+  document.getElementById('imp-title').style.color=hasAnoms?'var(--red)':'var(--green)';
+  document.getElementById('imp-desc').textContent=`共解析${rows.length}条记录·${fname}`;
+  document.getElementById('r-tot').textContent=inc.toFixed(0);
+  document.getElementById('r-cnt').textContent=tcnt;
+  document.getElementById('r-ref').textContent=ref.toFixed(0);
+  document.getElementById('r-noc').textContent=noc;
+  const al=document.getElementById('anom-list');al.innerHTML='';
+  if(!anoms.length){al.innerHTML='<div style="text-align:center;padding:16px;color:var(--green);font-size:13px;">✓ 未发现异常</div>';}
+  else anoms.slice(0,20).forEach(tx=>{
+    const el=document.createElement('div');
+    el.className=`tx ${tx.t}`;
+    el.innerHTML=`<div class="tx-flag ${tx.t}">${tx.f}</div><div class="tx-ico ${tx.t}">${tx.ico}</div><div class="tx-info"><div class="tx-name">${tx.n}</div><div class="tx-meta">${tx.m}</div></div><div class="tx-right"><div class="tx-amt ${tx.a.startsWith('+')?' pos':'neg'}">${tx.a}</div><div class="tx-time">${(tx.tm||'').slice(-8)}</div></div>`;
+    al.appendChild(el);
+  });
+  document.getElementById('anom-cnt').textContent=`${anoms.length}条`;
+  const ol=document.getElementById('op-list');ol.innerHTML='';
+  Object.entries(ops).forEach(([name,d])=>{
+    const rs=d.ref*3+d.noc*2;
+    const cls=rs>=6?'danger':rs>=3?'risk':'safe';
+    const lbl=rs>=6?'高风险':rs>=3?'注意':'正常';
+    const pct=rs>=6?80:rs>=3?45:15;
+    ol.innerHTML+=`<div class="op-card"><div class="op-hd"><div class="op-name">👤 ${name}</div><div class="op-badge ${cls}">${lbl}</div></div><div class="op-stats"><div class="op-stat"><div class="op-stat-val" style="color:var(--green)">¥${d.inc.toFixed(0)}</div><div class="op-stat-lbl">收款额</div></div><div class="op-stat"><div class="op-stat-val" style="color:var(--blue)">${d.cnt}</div><div class="op-stat-lbl">交易笔</div></div><div class="op-stat"><div class="op-stat-val" style="color:var(--red)">${d.ref}</div><div class="op-stat-lbl">退款次</div></div><div class="op-stat"><div class="op-stat-val" style="color:var(--yellow)">${d.noc}</div><div class="op-stat-lbl">无码次</div></div></div><div class="progress-bar"><div class="progress-fill ${cls}" style="width:${pct}%"></div></div></div>`;
+  });
+  toast(`✅ 解析完成，共${rows.length}条记录`);
+}
+function resetImport(){
+  document.getElementById('dzone').style.display='block';
+  document.getElementById('analysis-result').style.display='none';
+  document.getElementById('fInput').value='';
+}
+
+// ===== Toast =====
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
+}
+</script>
+</body>
+</html>
